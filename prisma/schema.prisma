@@ -1,0 +1,82 @@
+// prisma/schema.prisma
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  // Para migrations/DDL, use conexão direta (sem pooler transaction).
+  // Em Supabase: apontar para Direct ou Session pooler (5432).
+  directUrl = env("DIRECT_URL")
+}
+
+enum UserPlan {
+  Free
+  Pro
+  Enterprise
+}
+
+enum AuthProvider {
+  ENTRA
+  GOOGLE
+}
+
+model User {
+  id           String        @id @default(uuid())
+  email        String        @unique
+  name         String?
+  plan         UserPlan      @default(Free)
+  authProvider AuthProvider  @default(ENTRA)
+  stripeCustomerId String?   @unique
+
+  subscriptions Subscription[]
+  projects       Project[]
+}
+
+model Project {
+  id               String   @id @default(uuid())
+  name             String
+  metadata         Json
+  activeScenarioId String
+  cables           Json
+  ipTypes          Json
+  reportConfig     Json
+  scenarios        Json
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  user             User     @relation(fields: [userId], references: [id])
+  userId           String
+}
+
+model Subscription {
+  id               String   @id @default(uuid())
+  provider         String   // 'stripe'
+  status           String
+  customerId       String?
+  subscriptionId   String?  @unique
+  priceId          String?
+  currentPeriodEnd DateTime?
+
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum NodeType {
+  TRAFO
+  POSTE
+}
+
+model NetworkNode {
+  id         String    @id @default(uuid())
+  name       String
+  type       NodeType
+  location   Unsupported("geometry")
+  properties Json?
+  createdAt  DateTime  @default(now())
+}

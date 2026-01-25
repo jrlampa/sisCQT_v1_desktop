@@ -1,0 +1,7 @@
+{
+  "name": "sisCQT Enterprise AI - Deployment Ready",
+  "description": "Plataforma avançada de engenharia elétrica para cálculo de redes BT, com suporte nativo a Docker e Cloud Run.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}

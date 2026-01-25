@@ -1,0 +1,58 @@
+name: Release Desktop (Windows)
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "desktop-v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    env:
+      # Necessário para `prisma generate` durante o build (não conecta de fato).
+      DATABASE_URL: postgresql://user:pass@localhost:5432/siscqt_db
+      DIRECT_URL: postgresql://user:pass@localhost:5432/siscqt_db
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run unit tests
+        run: npm run test:unit
+
+      - name: Build desktop (NSIS)
+        run: npm run build:desktop
+
+      - name: Upload desktop artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-dist
+          path: dist/desktop
+          if-no-files-found: error
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          # Mantemos tolerante porque alguns formatos variam por target/config.
+          fail_on_unmatched_files: false
+          files: |
+            dist/desktop/**/*.exe
+            dist/desktop/**/*.blockmap
+            dist/desktop/**/latest.yml
+          body: |
+            ## Installer (Windows)
+            - Build gerado automaticamente via `electron-builder` (NSIS).
+            - Se você usar assinatura de código, configure as variáveis/segredos no Actions antes de publicar.

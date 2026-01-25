@@ -1,0 +1,176 @@
+{
+  "name": "baseline_prodist_sem_gd",
+  "input": {
+    "scenarioId": "PRODIST_GOLDEN_1",
+    "params": {
+      "trafoKva": 75,
+      "profile": "Massivos",
+      "classType": "Automatic",
+      "manualClass": "B",
+      "normativeTable": "PRODIST",
+      "includeGdInQt": false
+    },
+    "cables": {
+      "CABO_A": {
+        "r": 0.32,
+        "x": 0.08,
+        "coef": 0.0891,
+        "ampacity": 250
+      }
+    },
+    "ips": {
+      "Sem IP": 0,
+      "LED 10W": 0.01
+    },
+    "nodes": [
+      {
+        "id": "TRAFO",
+        "parentId": "",
+        "meters": 0,
+        "cable": "CABO_A",
+        "loads": {
+          "mono": 0,
+          "bi": 0,
+          "tri": 0,
+          "pointQty": 0,
+          "pointKva": 0,
+          "ipType": "Sem IP",
+          "ipQty": 0,
+          "solarKva": 0,
+          "solarQty": 0
+        }
+      },
+      {
+        "id": "P1",
+        "parentId": "TRAFO",
+        "meters": 120,
+        "cable": "CABO_A",
+        "loads": {
+          "mono": 12,
+          "bi": 0,
+          "tri": 0,
+          "pointQty": 0,
+          "pointKva": 0,
+          "ipType": "Sem IP",
+          "ipQty": 0,
+          "solarKva": 0,
+          "solarQty": 0
+        }
+      },
+      {
+        "id": "P2",
+        "parentId": "P1",
+        "meters": 80,
+        "cable": "CABO_A",
+        "loads": {
+          "mono": 6,
+          "bi": 0,
+          "tri": 0,
+          "pointQty": 0,
+          "pointKva": 1.5,
+          "ipType": "LED 10W",
+          "ipQty": 30,
+          "solarKva": 0,
+          "solarQty": 0
+        }
+      }
+    ]
+  },
+  "expected": {
+    "scenarioId": "PRODIST_GOLDEN_1",
+    "kpis": {
+      "totalLoad": 21.6,
+      "diversifiedLoad": 19.8,
+      "pointLoad": 1.5,
+      "ipLoad": 0.3,
+      "trafoOccupation": 28.8,
+      "maxCqt": 1.9673,
+      "totalCustomers": 18,
+      "globalDmdiFactor": 1.1
+    },
+    "gdImpact": {
+      "totalInstalledKva": 0,
+      "maxVoltageRise": 0,
+      "hasReverseFlow": false,
+      "reverseFlowAmps": 0,
+      "selfConsumptionRate": 0
+    },
+    "warnings": [],
+    "nodes": [
+      {
+        "id": "P1",
+        "parentId": "TRAFO",
+        "meters": 120,
+        "cable": "CABO_A",
+        "loads": {
+          "mono": 12,
+          "bi": 0,
+          "tri": 0,
+          "pointKva": 0,
+          "ipType": "Sem IP",
+          "ipQty": 0,
+          "solarKva": 0
+        },
+        "subtreeTotalKva": 21.6,
+        "subtreeTotalSolarKva": 0,
+        "nodeDistributedKva": 13.2,
+        "nodeConcentratedKva": 0,
+        "nodeSolarKva": 0,
+        "calculatedLoad": 32.8188,
+        "accumulatedCqt": 1.6038,
+        "solarVoltageRise": 0,
+        "jouleLossWatts": 124.0786,
+        "netCurrentDay": 9.8456
+      },
+      {
+        "id": "P2",
+        "parentId": "P1",
+        "meters": 80,
+        "cable": "CABO_A",
+        "loads": {
+          "mono": 6,
+          "bi": 0,
+          "tri": 0,
+          "pointKva": 1.5,
+          "ipType": "LED 10W",
+          "ipQty": 30,
+          "solarKva": 0
+        },
+        "subtreeTotalKva": 8.4,
+        "subtreeTotalSolarKva": 0,
+        "nodeDistributedKva": 6.6,
+        "nodeConcentratedKva": 1.8,
+        "nodeSolarKva": 0,
+        "calculatedLoad": 12.7629,
+        "accumulatedCqt": 1.9673,
+        "solarVoltageRise": 0,
+        "jouleLossWatts": 12.51,
+        "netCurrentDay": 3.8289
+      },
+      {
+        "id": "TRAFO",
+        "parentId": "",
+        "meters": 0,
+        "cable": "CABO_A",
+        "loads": {
+          "mono": 0,
+          "bi": 0,
+          "tri": 0,
+          "pointKva": 0,
+          "ipType": "Sem IP",
+          "ipQty": 0,
+          "solarKva": 0
+        },
+        "subtreeTotalKva": 21.6,
+        "subtreeTotalSolarKva": 0,
+        "nodeDistributedKva": 0,
+        "nodeConcentratedKva": 0,
+        "nodeSolarKva": 0,
+        "calculatedLoad": 32.8188,
+        "accumulatedCqt": 0,
+        "solarVoltageRise": 0
+      }
+    ]
+  }
+}
+

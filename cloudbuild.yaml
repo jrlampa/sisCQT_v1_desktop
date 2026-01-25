@@ -1,0 +1,68 @@
+options:
+  # Evita erro quando `build.service_account` é definido no trigger.
+  logging: CLOUD_LOGGING_ONLY
+  # Permite triggers com substitutions extras sem falhar.
+  substitutionOption: ALLOW_LOOSE
+
+substitutions:
+  _REGION: us-west1
+  # Nome do serviço Cloud Run
+  _SERVICE: siscqt-enterprise-ai-deployment-ready
+  # Artifact Registry (repo e nome da imagem). Não usar $PROJECT_ID/$SHORT_SHA aqui:
+  # o Cloud Build NÃO expande variáveis dentro do bloco `substitutions`.
+  _AR_REPO: siscqt
+  _IMAGE_NAME: siscqt-enterprise-ai
+  # Se quiser deploy automático, defina _DEPLOY=true no trigger.
+  _DEPLOY: "false"
+
+steps:
+  # Garante que o repositório do Artifact Registry exista (senão o push falha com "Repository not found").
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: bash
+    args:
+      - -ceu
+      - |
+        echo "Verificando Artifact Registry repo '${_AR_REPO}' em ${_REGION}..."
+        if gcloud artifacts repositories describe "${_AR_REPO}" --location "${_REGION}" >/dev/null 2>&1; then
+          echo "Repo '${_AR_REPO}' OK."
+        else
+          echo "Repo '${_AR_REPO}' não existe. Criando..."
+          gcloud artifacts repositories create "${_AR_REPO}" \
+            --location "${_REGION}" \
+            --repository-format docker \
+            --description "Repo Docker para o siSCQT (Cloud Build/Run)"
+          echo "Repo '${_AR_REPO}' criado."
+        fi
+
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --target
+      - prod
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_IMAGE_NAME}:$SHORT_SHA
+      - .
+
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_IMAGE_NAME}:$SHORT_SHA
+
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: bash
+    args:
+      - -ceu
+      - |
+        if [[ "${_DEPLOY}" != "true" ]]; then
+          echo "Skip deploy (set _DEPLOY=true no trigger para habilitar)."
+          exit 0
+        fi
+        gcloud run deploy "${_SERVICE}" \
+          --image "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_IMAGE_NAME}:$SHORT_SHA" \
+          --region "${_REGION}" \
+          --platform managed \
+          --quiet
+
+images:
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_IMAGE_NAME}:$SHORT_SHA
+

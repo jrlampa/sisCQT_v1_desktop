@@ -1,0 +1,83 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install
+
+      - name: Run unit tests (Vitest) + evidências
+        env:
+          CI: "true"
+        run: |
+          node -e "require('fs').mkdirSync('reports/vitest', { recursive: true })"
+          npx vitest run --reporter=default --reporter=github-actions --reporter=junit --reporter=html --outputFile.junit=reports/vitest/junit.xml --outputFile.html=reports/vitest/index.html --coverage --coverage.provider=v8 --coverage.reportsDirectory=reports/vitest/coverage --coverage.reportOnFailure
+
+      - name: Run e2e tests
+        env:
+          CI: "true"
+        run: npm run test:e2e
+
+      - name: Upload audit-ready evidence (tests)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: audit-evidence-tests
+          path: |
+            reports/vitest
+            test-results
+            playwright-report
+          if-no-files-found: ignore
+          retention-days: 30
+
+  build_desktop:
+    name: Build Desktop (Windows)
+    runs-on: windows-latest
+    needs: test
+    timeout-minutes: 30
+    env:
+      # Necessário para `prisma generate` durante o build (não conecta de fato).
+      DATABASE_URL: postgresql://user:pass@localhost:5432/siscqt_db
+      DIRECT_URL: postgresql://user:pass@localhost:5432/siscqt_db
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build desktop (NSIS)
+        run: npm run build:desktop
+
+      - name: Upload desktop artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-dist
+          path: dist/desktop
+          if-no-files-found: error
+

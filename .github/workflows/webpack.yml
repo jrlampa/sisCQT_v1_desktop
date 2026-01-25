@@ -1,0 +1,13 @@
+name: Legacy Webpack Template (disabled)
+
+# Este repositório é Vite/TS + Electron. Este workflow era um template de exemplo e
+# costuma falhar por não haver config de Webpack. Mantemos apenas manual, para evitar
+# quebrar o pipeline principal.
+on:
+  workflow_dispatch:
+
+jobs:
+  noop:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Workflow desativado (template legado)."
