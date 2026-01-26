@@ -1,7 +1,8 @@
 {
   "name": "siscqt-v1-desktop",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "sisCQT v1 (Desktop) - Electron container",
+  "author": "IM3 Brasil",
   "main": "electron/main.cjs",
   "type": "module",
   "scripts": {
@@ -31,7 +32,6 @@
   "dependencies": {
     "@azure/msal-browser": "^3.11.0",
     "@azure/msal-react": "^2.0.12",
-    "@google/genai": "^0.3.1",
     "@prisma/client": "^5.10.2",
     "@react-oauth/google": "^0.13.4",
     "compression": "^1.8.1",
@@ -40,11 +40,12 @@
     "express": "^5.0.0",
     "express-rate-limit": "^8.2.1",
     "google-auth-library": "^10.5.0",
+    "groq-sdk": "^0.37.0",
     "helmet": "^8.1.0",
     "html2pdf.js": "^0.14.0",
     "jsonwebtoken": "^9.0.3",
     "jszip": "^3.10.1",
-    "jwks-rsa": "^3.2.1",
+    "jwks-rsa": "^3.2.2",
     "leaflet": "^1.9.4",
     "multer": "^2.0.2",
     "prisma": "^5.10.2",
@@ -70,10 +71,10 @@
     "@vitest/coverage-v8": "^4.0.18",
     "@vitest/ui": "^4.0.18",
     "autoprefixer": "^10.4.23",
-    "concurrently": "^8.2.2",
-    "cross-env": "^7.0.3",
-    "electron": "^37.2.6",
-    "electron-builder": "^26.0.12",
+    "concurrently": "^9.2.1",
+    "cross-env": "^10.1.0",
+    "electron": "^40.0.0",
+    "electron-builder": "^26.4.0",
     "jsdom": "^27.4.0",
     "msal-react-tester": "^0.3.1",
     "postcss": "^8.5.6",
@@ -83,22 +84,32 @@
     "vite": "^7.3.1",
     "vitest": "^4.0.18",
     "vitest-mock-extended": "^3.1.0",
-    "wait-on": "^8.0.5"
+    "wait-on": "^9.0.3"
   },
   "build": {
     "appId": "br.com.im3.siscqt.desktop",
     "productName": "sisCQT Desktop",
     "directories": {
-      "output": "dist/desktop"
+      "output": "dist/desktop",
+      "buildResources": "public"
     },
     "files": [
-      "dist/**",
+      "dist/client/**",
+      "dist/server/**",
       "electron/**",
-      "package.json"
+      "package.json",
+      "!dist/desktop/**"
     ],
     "asar": true,
     "win": {
+      "signAndEditExecutable": false,
+      "icon": "siscqt_logo.ico",
       "target": "nsis"
+    },
+    "nsis": {
+      "installerIcon": "siscqt_logo.ico",
+      "uninstallerIcon": "siscqt_logo.ico",
+      "installerHeaderIcon": "siscqt_logo.ico"
     }
   }
 }

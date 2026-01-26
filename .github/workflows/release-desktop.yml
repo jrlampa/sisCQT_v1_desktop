@@ -14,6 +14,9 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 45
     env:
+      # URL da API de produção para o build do Electron.
+      VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL_PROD }}
+
       # Necessário para `prisma generate` durante o build (não conecta de fato).
       DATABASE_URL: postgresql://user:pass@localhost:5432/siscqt_db
       DIRECT_URL: postgresql://user:pass@localhost:5432/siscqt_db
