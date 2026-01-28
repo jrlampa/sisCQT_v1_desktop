@@ -7,11 +7,11 @@ import { prisma } from '../utils/db';
 let mockVerifyToken: (token: string) => Promise<any>;
 let stripeMock: any;
 
-vi.mock('../utils/tokenUtils.js', () => ({
+vi.mock('../utils/tokenUtils', () => ({
   verifyToken: (token: string) => mockVerifyToken(token),
 }));
 
-vi.mock('../services/stripeService.js', () => ({
+vi.mock('../services/stripeService', () => ({
   getStripe: () => stripeMock,
   getAppBaseUrl: () => 'https://app.example',
   getStripePriceIdPro: () => 'price_pro_123',
@@ -71,8 +71,8 @@ describe('Billing routes (unit/integration)', () => {
     };
 
     const [{ billingRoutes }, { errorHandler }] = await Promise.all([
-      import('../routes/billingRoutes.js'),
-      import('../middlewares/errorHandler.js'),
+      import('../server/routes/billingRoutes'),
+      import('../server/middlewares/errorHandler'),
     ]);
 
     app = express();

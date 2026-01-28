@@ -1,0 +1,257 @@
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Project, User } from '../../types';
+import { useToast } from '../context/ToastContext.tsx';
+import { KmlService } from '../../services/kmlService';
+import { useProject } from '../context/ProjectContext';
+
+const ProjectHub: React.FC<{ user: User; onLogout: () => void; onBilling: () => void; onSelectProject: (id: string) => void; }> = ({ user, onLogout, onBilling, onSelectProject }) => {
+  const { showToast } = useToast();
+  const { savedProjects, createProject, importXlsxProject, createWelcomeProject, updateProject, deleteProject, duplicateProject, setCurrentProjectId } = useProject();
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
+  const [formProject, setFormProject] = useState({
+    name: '',
+    sob: '',
+    pe: '',
+    lat: '',
+    lng: ''
+  });
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isImporting, setIsImporting] = useState(false);
+  const isCreatingWelcomeRef = useRef(false);
+
+  const WELCOME_NAME = 'Projeto Modelo (WELCOME)';
+  const hasWelcomeProject = useMemo(
+    () => Object.values(savedProjects).some((p) => p?.name === WELCOME_NAME),
+    [savedProjects]
+  );
+
+  const projectList = useMemo(
+    () =>
+      (Object.values(savedProjects) as Project[]).sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()),
+    [savedProjects]
+  );
+
+  // Cria automaticamente um projeto WELCOME para novos usuários (apenas se não existir nenhum projeto).
+  useEffect(() => {
+    const flagKey = 'sisqat_welcome_project_created';
+    if (projectList.length !== 0) return;
+    if (hasWelcomeProject) return;
+    if (isImporting) return;
+    if (isModalOpen) return;
+    if (localStorage.getItem(flagKey) === 'true') return;
+    if (isCreatingWelcomeRef.current) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        isCreatingWelcomeRef.current = true;
+        const id = await createWelcomeProject();
+        if (cancelled) return;
+        localStorage.setItem(flagKey, 'true');
+        showToast('Projeto Modelo criado. Abra para explorar Editor, GIS e Theseus.', 'info');
+        // seleciona automaticamente para “welcome”
+        setCurrentProjectId(id);
+        onSelectProject(id);
+      } catch (e: any) {
+        // se falhar (ex.: constantes indisponíveis), não trava o Hub
+        if (cancelled) return;
+      } finally {
+        isCreatingWelcomeRef.current = false;
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [projectList.length, hasWelcomeProject, isImporting, isModalOpen, createWelcomeProject, setCurrentProjectId, onSelectProject, showToast]);
+
+  const handleCreateProject = async (name: string, sob: string, pe: string, lat: number, lng: number) => {
+    try {
+      await createProject(name, sob, pe, lat, lng);
+      showToast(`Projeto "${name}" criado!`, 'success');
+    } catch (e: any) {
+      showToast(e?.message || "Falha ao criar projeto (constantes indisponíveis).", "error");
+    }
+  };
+
+  const handleSelectProject = (projectId: string) => {
+    setCurrentProjectId(projectId);
+    onSelectProject(projectId);
+  };
+
+  const handleDeleteProject = (projectId: string) => {
+    if (window.confirm("Tem certeza que deseja apagar este projeto?")) {
+      deleteProject(projectId);
+      showToast("Projeto apagado.", "info");
+    }
+  };
+
+  const handleDuplicateProject = (projectId: string) => {
+    duplicateProject(projectId);
+    showToast("Projeto duplicado com sucesso!", "success");
+  };
+
+
+
+  const handleFormSubmit = async () => {
+    const { name, sob, pe, lat, lng } = formProject;
+    if (!name.trim() || !sob.trim()) return showToast("Preencha os campos obrigatórios", "warning");
+    
+    if (editingProjectId) {
+      updateProject({ 
+        id: editingProjectId, 
+        name, 
+        metadata: { sob, electricPoint: pe, lat: parseFloat(lat), lng: parseFloat(lng) } 
+      });
+    }
+    else {
+      try {
+        await createProject(name, sob, pe, parseFloat(lat), parseFloat(lng));
+      } catch (e: any) {
+        showToast(e?.message || "Falha ao criar projeto (constantes indisponíveis).", "error");
+        return;
+      }
+    }
+    
+    setIsModalOpen(false);
+  };
+
+  return (
+    <div className="min-h-screen bg-transparent p-10 flex flex-col items-center animate-in fade-in duration-1000">
+      <div className="w-full max-w-6xl flex flex-col gap-10">
+        
+        <header className="w-full flex justify-between items-center glass p-8 rounded-[40px] border-white/80 shadow-2xl">
+          <div className="flex items-center gap-8">
+            <div className="text-3xl font-black tracking-tighter text-blue-600">siSCQT</div>
+            <div className="h-10 w-px bg-gray-200"></div>
+            <div className="flex flex-col">
+              <h1 className="text-xs font-black text-gray-400 uppercase tracking-[0.3em] mb-1">Hub de Engenharia</h1>
+              <span className="text-[10px] font-bold text-gray-700">{user.email}</span>
+            </div>
+          </div>
+
+          <div className="flex gap-3">
+            <button onClick={onBilling} className="bg-white/60 px-6 py-3 rounded-2xl font-black text-blue-600 text-[10px] uppercase tracking-widest border border-white hover:bg-white transition-all shadow-sm">💳 {user.plan}</button>
+            <button onClick={() => fileInputRef.current?.click()} className="bg-white/60 px-6 py-3 rounded-2xl font-black text-gray-600 text-[10px] uppercase tracking-widest border border-white hover:bg-white transition-all shadow-sm">🌍 Importar</button>
+            <button onClick={() => { setEditingProjectId(null); setIsModalOpen(true); }} className="bg-blue-600 px-8 py-3 rounded-2xl font-black text-white text-[10px] uppercase tracking-widest shadow-xl shadow-blue-100 hover:scale-105 active:scale-95 transition-all">+ Novo Projeto</button>
+            <button onClick={onLogout} className="bg-red-50 text-red-500 px-5 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all">Sair</button>
+          </div>
+        </header>
+
+        <main className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {projectList.length === 0 ? (
+            <div className="col-span-full py-32 flex flex-col items-center opacity-30">
+               <div className="text-7xl mb-6">📁</div>
+               <p className="font-black text-sm uppercase tracking-[0.2em]">Nenhum estudo encontrado</p>
+               <button
+                 onClick={async () => {
+                   try {
+                     const id = await createWelcomeProject();
+                     showToast('Projeto Modelo criado!', 'success');
+                     setCurrentProjectId(id);
+                     onSelectProject(id);
+                   } catch (e: any) {
+                     showToast(e?.message || 'Falha ao criar Projeto Modelo.', 'error');
+                   }
+                 }}
+                 className="mt-6 text-xs font-black text-blue-600 underline"
+               >
+                 Criar Projeto Modelo (WELCOME)
+               </button>
+            </div>
+          ) : (
+            projectList.map((prj) => (
+              <div
+                key={prj.id}
+                data-testid={`project-card-${prj.id}`}
+                onClick={() => handleSelectProject(prj.id)}
+                className="glass-dark p-8 rounded-[40px] group cursor-pointer hover:scale-[1.02] hover:shadow-2xl transition-all duration-500 relative border-white/60"
+              >
+                <div className="absolute top-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
+                   <button
+                     aria-label={`Duplicar projeto ${prj.name}`}
+                     onClick={(e) => { e.stopPropagation(); handleDuplicateProject(prj.id); }}
+                     className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-sm shadow-xl"
+                   >
+                     👯
+                   </button>
+                   <button
+                     aria-label={`Apagar projeto ${prj.name}`}
+                     onClick={(e) => { e.stopPropagation(); handleDeleteProject(prj.id); }}
+                     className="w-10 h-10 bg-red-50 rounded-xl flex items-center justify-center text-sm text-red-500 shadow-xl"
+                   >
+                     ✕
+                   </button>
+                </div>
+                <div className="flex flex-col h-full">
+                   <span className="text-[9px] font-black text-blue-500 bg-blue-50 px-3 py-1 rounded-full w-fit uppercase tracking-widest mb-6">SOB {prj.metadata.sob}</span>
+                   <h3 className="text-lg font-black text-gray-800 leading-tight mb-2 group-hover:text-blue-600 transition-colors uppercase tracking-tight">{prj.name}</h3>
+                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-10">{prj.metadata.city || 'Local não definido'}</p>
+                   <div className="mt-auto flex justify-between items-center pt-6 border-t border-gray-50">
+                      <span className="text-[9px] font-bold text-gray-300 uppercase">{new Date(prj.updatedAt).toLocaleDateString()}</span>
+                      <span className="text-[10px] font-black text-blue-600 uppercase tracking-tighter translate-x-2 group-hover:translate-x-0 transition-transform">Abrir Estudo ➔</span>
+                   </div>
+                </div>
+              </div>
+            ))
+          )}
+        </main>
+      </div>
+
+      {isModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-8 backdrop-blur-md bg-white/10">
+          <div className="glass-dark w-full max-w-lg rounded-[48px] p-12 shadow-2xl border-white relative animate-in zoom-in-95 duration-500">
+            <h2 className="text-2xl font-black text-[#004a80] mb-10 uppercase tracking-tighter">Configurar Novo Estudo</h2>
+            <div className="flex flex-col gap-6">
+              <div className="grid grid-cols-2 gap-4">
+                 <div className="flex flex-col gap-2">
+                    <label htmlFor="project-sob" className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">SOB / ID</label>
+                    <input id="project-sob" aria-label="SOB / ID" className="w-full bg-white/50 border border-gray-100 rounded-2xl px-5 py-4 text-sm font-black outline-none focus:border-blue-400 transition-all" value={formProject.sob} onChange={e => setFormProject({...formProject, sob: e.target.value})} />
+                 </div>
+                 <div className="flex flex-col gap-2">
+                    <label htmlFor="project-pe" className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Ponto Elétrico</label>
+                    <input id="project-pe" aria-label="Ponto Elétrico" className="w-full bg-white/50 border border-gray-100 rounded-2xl px-5 py-4 text-sm font-black outline-none focus:border-blue-400 transition-all" value={formProject.pe} onChange={e => setFormProject({...formProject, pe: e.target.value})} />
+                 </div>
+              </div>
+              <div className="flex flex-col gap-2">
+                 <label htmlFor="project-name" className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Título do Estudo</label>
+                 <input id="project-name" aria-label="Título do Estudo" className="w-full bg-white/50 border border-gray-100 rounded-2xl px-5 py-4 text-sm font-black outline-none focus:border-blue-400 transition-all" value={formProject.name} onChange={e => setFormProject({...formProject, name: e.target.value})} />
+              </div>
+              <button onClick={handleFormSubmit} className="mt-6 bg-blue-600 text-white py-5 rounded-3xl font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-blue-200 hover:bg-blue-700 transition-all">Inicializar Workspace ➔</button>
+              <button onClick={() => setIsModalOpen(false)} className="text-[10px] font-black text-gray-300 hover:text-gray-500 transition-colors uppercase tracking-widest">Cancelar</button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      <input aria-label="Importar arquivo KML/KMZ/XLSX" type="file" ref={fileInputRef} className="hidden" accept=".kml,.kmz,.xlsx" onChange={async (e) => {
+        const file = e.target.files?.[0];
+        if (file) {
+          setIsImporting(true);
+          try {
+            const lower = file.name.toLowerCase();
+            if (lower.endsWith('.xlsx')) {
+              const id = await importXlsxProject(file);
+              showToast("Importação XLSX concluída!", "success");
+              setCurrentProjectId(id);
+              onSelectProject(id);
+            } else {
+              const data = await KmlService.parseFile(file);
+              await createProject(file.name, 'KML.' + Math.floor(Math.random() * 1000), 'BT-IMP', data.metadata.lat || -22.9, data.metadata.lng || -43.1);
+              showToast("Importação KML concluída!", "success");
+            }
+          } catch(err: any) {
+            showToast(err?.message || "Falha no KML", "error");
+          }
+          finally { setIsImporting(false); }
+        }
+        // permite reimportar o mesmo arquivo sem precisar recarregar a página
+        try { (e.target as any).value = ''; } catch {}
+      }} />
+    </div>
+  );
+};
+
+export default ProjectHub;

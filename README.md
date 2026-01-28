@@ -59,7 +59,7 @@ O comando acima sobe:
 npm run build:desktop
 ```
 
-O build gera os artefatos em `dist/desktop/` (instalador NSIS no Windows).
+O build gera os artefatos em `dist/desktop/` (instalador NSIS no Windows). Por padrão o instalador **não é assinado**; o Windows pode exibir avisos do SmartScreen. Para assinatura de código, ver [docs/RELEASE.md](docs/RELEASE.md).
 
 ### OAuth (Entra ID + Google) no Desktop
 
@@ -98,10 +98,12 @@ $$CQT = \sum (kVA \cdot L \cdot Coef_{cabo} \cdot 0.5)$$
 
 ## 📁 Estrutura do Projeto
 
-- `/components`: Interface modular (Dashboard, Editor, Hub, etc).
-- `/services`: Core de engenharia e integração com o motor de IA.
-- `types.ts`: Definições rigorosas de contratos de dados.
-- `constants.ts`: Catálogo técnico de cabos, tabelas DMDI e perfis normativos.
+- **`src/`** — Frontend: `App`, `index`, `components/` (Dashboard, Editor, Hub, etc.), `context/`, `hooks/`, `assets/`.
+- **`server/`** — Backend: `routes/`, `middlewares/`, `controllers/`, `schemas/`.
+- **`services/`** — Core de engenharia e integração (motor de IA, import XLSX, etc.).
+- **`tests/`** — Testes unitários e de integração; `tests/components/` para testes de componentes.
+- **`e2e/`** — Testes E2E (Playwright).
+- **Raiz**: `server.ts`, `types.ts`, `constants.ts`, `authConfig.ts`, configs (Vite, Prisma, etc.).
 
 ## ✅ CI / Build / Release (Desktop)
 
@@ -113,6 +115,8 @@ $$CQT = \sum (kVA \cdot L \cdot Coef_{cabo} \cdot 0.5)$$
 - **GitHub Actions**:
   - O workflow `CI` roda testes e valida o build do desktop.
   - Para publicar um release do instalador, crie uma tag `desktop-vX.Y.Z` (ex.: `desktop-v1.0.0`).
+- **Runbook**: ver [docs/RELEASE.md](docs/RELEASE.md) para checklist, secrets e passos completos.
+- **Versionamento**: SemVer (`package.json`). Tags `desktop-vX.Y.Z` (ex.: `desktop-v1.0.0`).
 
 ## ▶️ Rodando localmente (recomendado: Docker)
 

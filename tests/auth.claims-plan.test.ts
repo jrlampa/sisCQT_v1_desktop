@@ -6,7 +6,7 @@ import { prisma } from '../utils/db';
 
 let mockVerifyToken: (token: string) => Promise<any>;
 
-vi.mock('../utils/tokenUtils.js', () => ({
+vi.mock('../utils/tokenUtils', () => ({
   verifyToken: (token: string) => mockVerifyToken(token),
 }));
 
@@ -34,10 +34,10 @@ describe('Auth (claims) e Plano (Pro/Free) — regras críticas', () => {
       { geminiRoutes },
       { errorHandler },
     ] = await Promise.all([
-      import('../routes/authRoutes.js'),
-      import('../routes/engineRoutes.js'),
-      import('../routes/geminiRoutes.js'),
-      import('../middlewares/errorHandler.js'),
+      import('../server/routes/authRoutes'),
+      import('../server/routes/engineRoutes'),
+      import('../server/routes/geminiRoutes'),
+      import('../server/middlewares/errorHandler'),
     ]);
 
     app = express();

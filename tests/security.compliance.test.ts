@@ -110,15 +110,15 @@ describe('Security / Compliance', () => {
       process.env.ENABLE_MOCK_AUTH = 'false';
 
       // Mock do tokenUtils precisa manter assertProdAuthConfig (usado no boot).
-      vi.doMock('../utils/tokenUtils.js', async () => {
-        const actual = await vi.importActual<any>('../utils/tokenUtils.js');
+      vi.doMock('../utils/tokenUtils', async () => {
+        const actual = await vi.importActual<any>('../utils/tokenUtils');
         return {
           ...actual,
           verifyToken: vi.fn(),
         };
       });
 
-      const tokenUtils = await import('../utils/tokenUtils.js');
+      const tokenUtils = await import('../utils/tokenUtils');
       verifyTokenMock = (tokenUtils as any).verifyToken;
 
       const mod = await import('../server');

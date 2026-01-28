@@ -1,7 +1,7 @@
 import * as ExcelJS from 'exceljs';
 import { z } from 'zod';
 import { DEFAULT_CABLES, DMDI_TABLES, IP_TYPES } from '../constants.js';
-import { CreateProjectSchema } from '../schemas/projectSchemas.js';
+import { CreateProjectSchema } from '../server/schemas/projectSchemas.js';
 
 type Workbook = ExcelJS.Workbook;
 type Worksheet = ExcelJS.Worksheet;

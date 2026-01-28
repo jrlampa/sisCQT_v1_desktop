@@ -81,7 +81,7 @@ function prismaMockFactory() {
 vi.mock('../utils/db', prismaMockFactory);
 // Muitos arquivos do backend importam com extensão `.js` (padrão ESM).
 // No Vitest/Vite isso resolve para o `.ts`, mas o specifier precisa ser coberto para o mock pegar.
-vi.mock('../utils/db.js', prismaMockFactory);
+vi.mock('../utils/db', prismaMockFactory);
 vi.mock('../utils/db.ts', prismaMockFactory);
 
 // Define environment variables for MSAL configuration in tests

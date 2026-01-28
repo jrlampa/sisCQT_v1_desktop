@@ -1,45 +1,19 @@
-# This workflow build and push a Docker container to Google Artifact Registry
-# and deploy it on Cloud Run when a commit is pushed to the "main"
-# branch.
+# Build and push Docker image to Google Artifact Registry and deploy to Cloud Run.
+# Manual trigger only (workflow_dispatch). Requires Workload Identity Federation.
 #
-# To configure this workflow:
+# Setup: see https://github.com/google-github-actions/auth#workload-identity-federation
+# and docs/DEPLOYMENT.md § Deploy reproduzível.
 #
-# 1. Enable the following Google Cloud APIs:
-#
-#    - Artifact Registry (artifactregistry.googleapis.com)
-#    - Cloud Run (run.googleapis.com)
-#    - IAM Credentials API (iamcredentials.googleapis.com)
-#
-#    You can learn more about enabling APIs at
-#    https://support.google.com/googleapi/answer/6158841.
-#
-# 2. Create and configure a Workload Identity Provider for GitHub:
-#    https://github.com/google-github-actions/auth#preferred-direct-workload-identity-federation.
-#
-#    Depending on how you authenticate, you will need to grant an IAM principal
-#    permissions on Google Cloud:
-#
-#    - Artifact Registry Administrator (roles/artifactregistry.admin)
-#    - Cloud Run Developer (roles/run.developer)
-#
-#    You can learn more about setting IAM permissions at
-#    https://cloud.google.com/iam/docs/manage-access-other-resources
-#
-# 3. Change the values in the "env" block to match your values.
+# Required secrets:
+#   GCP_WORKLOAD_IDENTITY_PROVIDER  — e.g. projects/123456789/locations/global/workloadIdentityPools/foo/providers/github
+#   GCP_PROJECT_ID                  — GCP project ID
+#   GCP_REGION                      — e.g. us-west1
+#   GCP_SERVICE                     — Cloud Run service name
 
 name: 'Build and Deploy to Cloud Run'
 
 on:
-  # Este workflow exige Workload Identity Federation configurado.
-  # Para evitar falhas constantes por placeholders, deixamos manual.
   workflow_dispatch:
-
-env:
-  PROJECT_ID: 'gen-lang-client-0477751091'
-  REGION: 'us-west1'
-  SERVICE: 'siscqt-enterprise-ai-deployment-ready'
-  # IMPORTANTE: você precisa preencher com o provider real (senão o auth falha).
-  WORKLOAD_IDENTITY_PROVIDER: 'CHANGE_ME'
 
 jobs:
   deploy:
@@ -53,44 +27,33 @@ jobs:
       - name: 'Checkout'
         uses: 'actions/checkout@v4'
 
-      # Configure Workload Identity Federation and generate an access token.
-      #
-      # See https://github.com/google-github-actions/auth for more options,
-      # including authenticating via a JSON credentials file.
       - id: 'auth'
         name: 'Authenticate to Google Cloud'
         uses: 'google-github-actions/auth@v2'
         with:
-          workload_identity_provider: '${{ env.WORKLOAD_IDENTITY_PROVIDER }}'
+          workload_identity_provider: '${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}'
 
-      # BEGIN - Docker auth and build
-      #
-      # If you already have a container image, you can omit these steps.
       - name: 'Docker Auth'
         uses: 'docker/login-action@v3'
         with:
           username: 'oauth2accesstoken'
           password: '${{ steps.auth.outputs.auth_token }}'
-          registry: '${{ env.REGION }}-docker.pkg.dev'
+          registry: '${{ secrets.GCP_REGION }}-docker.pkg.dev'
 
       - name: 'Build and Push Container'
-        run: |-
-          DOCKER_TAG="$${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE }}:${{ github.sha }}"
-          docker build --tag "${DOCKER_TAG}" .
-          docker push "${DOCKER_TAG}"
-      - name: 'Deploy to Cloud Run'
+        run: |
+          TAG="${{ secrets.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.GCP_SERVICE }}:${{ github.sha }}"
+          docker build --target prod -t "${TAG}" .
+          docker push "${TAG}"
 
-        # END - Docker auth and build
-
+      - id: 'deploy'
+        name: 'Deploy to Cloud Run'
         uses: 'google-github-actions/deploy-cloudrun@v2'
         with:
-          service: '${{ env.SERVICE }}'
-          region: '${{ env.REGION }}'
-          # NOTE: If using a pre-built image, update the image name below:
+          service: '${{ secrets.GCP_SERVICE }}'
+          region: '${{ secrets.GCP_REGION }}'
+          image: '${{ secrets.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.GCP_SERVICE }}:${{ github.sha }}'
 
-          image: '${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE }}:${{ github.sha }}'
-      # If required, use the Cloud Run URL output in later steps
-      - name: 'Show output'
-        run: |2-
-
-          echo ${{ steps.deploy.outputs.url }}
+      - name: 'Show Cloud Run URL'
+        run: |
+          echo "Deployed: ${{ steps.deploy.outputs.url }}"

@@ -1,7 +1,7 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
-import { ToastProvider } from '../context/ToastContext';
+import { ToastProvider } from '../src/context/ToastContext';
 
 const {
   getProjectsMock,
@@ -33,8 +33,8 @@ vi.mock('../services/apiService', () => {
   };
 });
 
-vi.mock('../context/ToastContext', async () => {
-  const actual = await vi.importActual<any>('../context/ToastContext');
+vi.mock('../src/context/ToastContext', async () => {
+  const actual = await vi.importActual<any>('../src/context/ToastContext');
   return {
     ...actual,
     useToast: () => ({
@@ -81,7 +81,7 @@ vi.mock('../services/electricalWorkerClient', () => {
   };
 });
 
-import { useProjectManagement } from '../hooks/useProjectManagement';
+import { useProjectManagement } from '../src/hooks/useProjectManagement';
 
 describe('useProjectManagement', () => {
   beforeEach(() => {

@@ -1,18 +1,15 @@
+# Build Docker prod → Artifact Registry. Deploy no Cloud Run só se _DEPLOY=true no trigger.
+# Ver docs/DEPLOYMENT.md § Deploy reproduzível e docs/RELEASE.md § 6.
+
 options:
-  # Evita erro quando `build.service_account` é definido no trigger.
   logging: CLOUD_LOGGING_ONLY
-  # Permite triggers com substitutions extras sem falhar.
   substitutionOption: ALLOW_LOOSE
 
 substitutions:
   _REGION: us-west1
-  # Nome do serviço Cloud Run
   _SERVICE: siscqt-enterprise-ai-deployment-ready
-  # Artifact Registry (repo e nome da imagem). Não usar $PROJECT_ID/$SHORT_SHA aqui:
-  # o Cloud Build NÃO expande variáveis dentro do bloco `substitutions`.
   _AR_REPO: siscqt
   _IMAGE_NAME: siscqt-enterprise-ai
-  # Se quiser deploy automático, defina _DEPLOY=true no trigger.
   _DEPLOY: "false"
 
 steps:
